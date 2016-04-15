@@ -6,5 +6,7 @@ KERNEL_MODULE_OBJECT_FILE_LIST := irqsync.o kgdboe_main.o kgdboe_io.o nethook.o 
 
 obj-m := $(KERNEL_MODULE_NAME).o
 $(KERNEL_MODULE_NAME)-y += $(KERNEL_MODULE_OBJECT_FILE_LIST)
-ccflags-y := -ggdb -O0 -std=gnu99
+ccflags-y := -ggdb -O2 -std=gnu99
 
+clean:
+	rm *.o modules.order Module.symvers *.mod.c

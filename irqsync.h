@@ -1,8 +1,11 @@
-#pragma once
+#ifndef _IRQ_SYNC_
+#define _IRQ_SYNC_
+
+#include <linux/kernel.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
-#include <linux/timer.h>
 #include <linux/spinlock.h>
+#include <linux/timer.h>
 #include <linux/list.h>
 
 struct managed_irq
@@ -28,3 +31,6 @@ bool irqsync_add_managed_irq(struct irqsync_manager *mgr, unsigned number, struc
 
 void irqsync_suspend_irqs(struct irqsync_manager *mgr);
 void irqsync_resume_irqs(struct irqsync_manager *mgr);
+
+#endif //_IRQ_SYNC_
+

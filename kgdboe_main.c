@@ -41,6 +41,15 @@ MODULE_LICENSE("GPL");
 
 #include <linux/timer.h>
 
+
+/////////////////////////////////////
+//set_memory_rw is not exported, search through symbol and findout where it is
+#include <linux/errno.h>
+#include <linux/kallsyms.h>
+#include <linux/string.h>
+int (*k_set_memory_rw)(unsigned long addr, int numpages) = NULL;
+////////////////////////////////////
+
 static int udp_port = 31337;
 module_param(udp_port, int, 0444);
 
@@ -53,13 +62,37 @@ module_param(local_ip, charp, 0444);
 static int force_single_core = 1;
 module_param(force_single_core, int, 0444);
 
+static int symbol_walk_callback(void *data, const char *name, struct module *mod, 
+			unsigned long addr)
+{
+	/* Skip the symbol if it belongs to a module rather than to 
+	 * * 	 * the kernel proper. */
+	if (mod != NULL) 
+		return 0;
+	
+	if (strcmp(name, "set_memory_rw") == 0) {
+		if (k_set_memory_rw != NULL) {
+			pr_warning("Found two set_memory_rw unable to continue\n");
+			return -EFAULT;
+		}
+		k_set_memory_rw = (typeof(k_set_memory_rw))addr;
+		return 0;
+	}
+	return 0;
+}
+
 static int __init kgdboe_init(void)
 {
-	int err = kgdboe_io_init(device_name, udp_port, local_ip, force_single_core != 0);
-	if (err != 0)
-		return err;
+	int ret = kallsyms_on_each_symbol(symbol_walk_callback, NULL);
+	if (ret)
+		return ret;
 
-	return 0;
+	if (k_set_memory_rw == NULL)
+	{
+		pr_warning("Unable to find set_memory_rw function\n");
+		return -EFAULT;
+	}
+	return kgdboe_io_init(device_name, udp_port, local_ip, force_single_core != 0);
 }
 
 static void __exit kgdboe_exit(void)
